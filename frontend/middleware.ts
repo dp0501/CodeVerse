@@ -6,7 +6,7 @@ export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl;
 
   // Skip middleware for static files and callback
-  if (pathname.match(/\\.(js|css|png|jpg|ico|woff|svg|json)$/)) {
+  if (pathname.match(/\\.(js|css|png|jpg|ico|woff|svg|json|webp)$/)) {
     return NextResponse.next();
   }
 
