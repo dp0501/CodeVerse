@@ -81,8 +81,9 @@ export const resetPasswordEmail = async (email: string) => {
   return { data, error };
 };
 
-export const verifyOtpRecovery = async (token: string) => {
+export const verifyOtpRecovery = async (email: string, token: string) => {
   const { data, error } = await supabase.auth.verifyOtp({
+    email,
     token,
     type: 'recovery',
   });

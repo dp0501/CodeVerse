@@ -13,8 +13,18 @@ export default function OtpVerifyClient() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('recoveryEmail');
+    if (storedEmail) {
+      setEmail(storedEmail);
+    } else {
+      router.push('/forgot-password');
+    }
+  }, [router]);
 
   const otpString = otp.join('');
 
@@ -58,7 +68,9 @@ export default function OtpVerifyClient() {
     setLoading(true);
     setMessage('');
 
-    const { error } = await verifyOtpRecovery(otpString);
+    const { error } = await verifyOtpRecovery(email, otpString);
+
+    localStorage.removeItem('recoveryEmail');
 
     if (error) {
       setMessage(error.message);

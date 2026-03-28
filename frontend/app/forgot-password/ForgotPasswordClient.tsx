@@ -27,8 +27,10 @@ export default function ForgotPasswordClient() {
     if (error) {
       setMessage(error.message);
     } else {
+      localStorage.setItem('recoveryEmail', email);
       setMessage('Check your email for the reset link!');
       setStep('sent');
+      router.push('/otp-verify');
     }
     
     setLoading(false);
