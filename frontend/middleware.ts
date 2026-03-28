@@ -3,25 +3,29 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  // Check if environment variables are set
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { pathname, searchParams } = req.nextUrl;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error("Missing Supabase environment variables");
+  // Skip middleware for static files and callback
+  if (pathname.match(/\\.(js|css|png|jpg|ico|woff|svg|json)$/)) {
     return NextResponse.next();
   }
 
+  // If coming from callback, allow next
+  if (pathname.startsWith('/auth/callback')) {
+    return NextResponse.next();
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
   const res = NextResponse.next();
 
-  // Create Supabase client with proper cookie handling
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
         return req.cookies.get(name)?.value;
       },
       set(name: string, value: string, options: any) {
-        // Set cookie in the response
         res.cookies.set({
           name,
           value,
@@ -29,7 +33,6 @@ export async function middleware(req: NextRequest) {
         });
       },
       remove(name: string, options: any) {
-        // Remove cookie by setting empty string with maxAge 0
         res.cookies.set({
           name,
           value: "",
@@ -39,56 +42,30 @@ export async function middleware(req: NextRequest) {
     },
   });
 
-  // Get user session
-  let {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // If no user, try getting session directly
-  if (!user) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      user = session.user;
-    } else if (session && !error) {
-      // Session exists but user is not available, try refreshing
-      try {
-        const { data: refreshData } = await supabase.auth.refreshSession();
-        if (refreshData?.session?.user) {
-          user = refreshData.session.user;
-        }
-      } catch (refreshError) {
-        // Refresh failed, continue without user
-      }
-    }
-  }
-
-  const { pathname } = req.nextUrl;
-
-  // Define route groups
-  const protectedRoutes = ["/dashboard", "/problems", "/submissions"];
+  const protectedRoutes = ["/dashboard"];
   const authRoutes = ["/login", "/signup"];
 
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
+  const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
-  // Redirect unauthenticated users from protected routes to login
-  if (!user && isProtectedRoute) {
-    const redirectUrl = new URL("/login", req.url);
-    redirectUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(redirectUrl);
+  // Protect dashboard
+  if (isProtected && !user) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users from auth routes
+  // Redirect authenticated users from login/signup - ignore welcome param
   if (user && isAuthRoute) {
-    // Check for redirect parameter in URL
-    const redirectParam = req.nextUrl.searchParams.get("redirect");
-    const redirectPath = redirectParam && redirectParam.startsWith("/") 
-      ? redirectParam 
-      : "/dashboard";
-    return NextResponse.redirect(new URL(redirectPath, req.url));
+    // Always go to dashboard, ignore other query params
+    const cleanRedirectUrl = req.nextUrl.clone();
+    cleanRedirectUrl.pathname = '/dashboard';
+    cleanRedirectUrl.search = '';
+    cleanRedirectUrl.hash = '';
+    return NextResponse.redirect(cleanRedirectUrl);
   }
 
   return res;
@@ -96,13 +73,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+

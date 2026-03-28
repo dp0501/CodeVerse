@@ -37,12 +37,25 @@ export default function SignUpPage() {
 
     setLoading(true);
     setMessage('');
-    const { data, error } = await signUp(email, password, username.trim());
-    if (error) {
-      setMessage(error.message);
-      setLoading(false);
-    } else {
-      setMessage('Sign up successful! Check your email for confirmation.');
+    
+    try {
+      const { data, error } = await signUp(email, password, username.trim());
+      if (error) {
+        setMessage(error.message);
+        setLoading(false);
+      } else {
+        // Store email for verification page
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('signup_email', email);
+        }
+        // Redirect to verification page
+        setMessage('Verification code sent to your email! Redirecting...');
+        setTimeout(() => {
+          window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
+        }, 1000);
+      }
+    } catch (err: any) {
+      setMessage(err.message || 'An error occurred. Please try again.');
       setLoading(false);
     }
   };

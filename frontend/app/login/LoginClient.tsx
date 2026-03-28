@@ -18,7 +18,7 @@ export default function LoginClient() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [redirect, setRedirect] = useState('/dashboard');
+  const [redirect, setRedirect] = useState('/dashboard?welcome=1');
 
   const router = useRouter();
 
@@ -39,7 +39,7 @@ export default function LoginClient() {
     setMessage('');
     
     try {
-      const { data, error } = await signIn(email, password);
+      const { error } = await signIn(email, password);
 
       if (error) {
         setMessage(error.message);
@@ -47,20 +47,9 @@ export default function LoginClient() {
         return;
       }
 
-      // Check if login was successful
-      if (data?.user || data?.session) {
-        setMessage('Login successful! Redirecting...');
-        
-        // Force a full page reload with a slight delay to ensure cookies are set
-        // This ensures the middleware can read the session cookies
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Use window.location.replace to avoid adding to history
-        window.location.replace(redirect);
-      } else {
-        setMessage('Login failed. Please try again.');
-        setLoading(false);
-      }
+      // Use Next.js router for client-side navigation - middleware handles auth check
+      router.push('/dashboard');
+      setMessage('Login successful! Redirecting...');
     } catch (err: any) {
       setMessage(err.message || 'An error occurred. Please try again.');
       setLoading(false);

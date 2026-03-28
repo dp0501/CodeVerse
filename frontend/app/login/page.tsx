@@ -1,8 +1,17 @@
 // /app/login/page.tsx
-'use client'; // mark this page as fully client-side
+'use client';
 
+import { Suspense } from 'react';
 import LoginClient from './LoginClient';
 
 export default function LoginPage() {
-  return <LoginClient />;
+  return (
+    <Suspense fallback={
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-neutral-950">
+        <div className="relative z-10 text-white">Loading...</div>
+      </div>
+    }>
+      <LoginClient />
+    </Suspense>
+  );
 }
