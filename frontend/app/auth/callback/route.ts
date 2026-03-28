@@ -26,11 +26,6 @@ export async function GET(request: NextRequest) {
             return request.cookies.get(name)?.value;
           },
           set(name: string, value: string, options: any) {
-            request.cookies.set({
-              name,
-              value,
-              ...options,
-            });
             response.cookies.set({
               name,
               value,
@@ -38,11 +33,6 @@ export async function GET(request: NextRequest) {
             });
           },
           remove(name: string, options: any) {
-            request.cookies.set({
-              name,
-              value: '',
-              ...options,
-            });
             response.cookies.set({
               name,
               value: '',
@@ -52,6 +42,7 @@ export async function GET(request: NextRequest) {
         },
       }
     );
+
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) console.log('Google OAuth error:', error.message);
